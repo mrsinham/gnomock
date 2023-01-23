@@ -96,6 +96,13 @@ func WithContainerName(name string) Option {
 	}
 }
 
+// WithNetworks allows to connect a container to one or more networks.
+func WithNetworks(networks ...string) Option {
+	return func(o *Options) {
+		o.Networks = append(o.Networks, networks...)
+	}
+}
+
 // WithPrivileged starts a container in privileged mode (like `docker run
 // --privileged`). This option should not be used unless you really need it.
 // One use case for this option would be to run a Preset that has some kind of
@@ -306,6 +313,8 @@ type Options struct {
 	// Reuse prevents the container from being automatically stopped and enables
 	// its re-use in posterior executions.
 	Reuse bool `json:"reuse"`
+
+	Networks []string `json:"networks"`
 
 	ctx                 context.Context
 	init                InitFunc

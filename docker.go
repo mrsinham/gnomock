@@ -3,6 +3,7 @@ package gnomock
 import (
 	"context"
 	"fmt"
+	"github.com/docker/docker/api/types/network"
 	"io"
 	"net/url"
 	"os"
@@ -328,7 +329,32 @@ func (d *docker) createContainer(ctx context.Context, image string, ports NamedP
 		ExtraHosts:   cfg.ExtraHosts,
 	}
 
-	resp, err := d.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, cfg.ContainerName)
+	var networkConfig *network.NetworkingConfig
+	if len(cfg.Networks) > 0 {
+
+		nr, err := d.client.NetworkList(
+			ctx,
+			types.NetworkListOptions{
+				Filters: filters.NewArgs(
+					filters.KeyValuePair{
+						Key:   "name",
+						Value: cfg.Networks[0],
+					},
+				),
+			})
+		if err != nil {
+			return nil, fmt.Errorf("can't get network list: %w", err)
+		}
+		networkConfig = &network.NetworkingConfig{
+			EndpointsConfig: map[string]*network.EndpointSettings{
+				nr[0].Name: {
+					NetworkID: nr[0].ID,
+				},
+			},
+		}
+	}
+
+	resp, err := d.client.ContainerCreate(ctx, containerConfig, hostConfig, networkConfig, nil, cfg.ContainerName)
 	if err == nil {
 		return &resp, nil
 	}
